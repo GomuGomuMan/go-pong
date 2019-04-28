@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
-	"golang.org/x/image/colornames"
+	"github.com/faiface/pixel/text"
+	"golang.org/x/image/font/basicfont"
 )
 
 const (
@@ -18,42 +20,23 @@ func main() {
 	pixelgl.Run(run)
 }
 
+func getHalfWindowLength() float64 {
+	return windowLength / 2
+}
+
 func getStaticObjList() []*imdraw.IMDraw {
 	var objList []*imdraw.IMDraw
 
-	barThickness := 15.0
-	lowerBar := imdraw.New(nil)
-	lowerBar.Color = colornames.Whitesmoke
-	lowerBar.EndShape = imdraw.NoEndShape
-	lowerBar.Push(pixel.V(0, barThickness/2), pixel.V(windowLength, barThickness/2))
-	lowerBar.Line(barThickness)
-	objList = append(objList, lowerBar)
+	// Bar
+	lowerBarImdraw := GetLowerBar().imdraw
+	objList = append(objList, lowerBarImdraw)
 
-	upperBar := imdraw.New(nil)
-	upperBar.Color = colornames.Whitesmoke
-	upperBar.EndShape = imdraw.NoEndShape
-	upperBar.Push(pixel.V(0, windowWidth-barThickness/2), pixel.V(windowLength, windowWidth-barThickness/2))
-	upperBar.Line(barThickness)
-	objList = append(objList, upperBar)
+	upperBarImdraw := GetUpperBar().imdraw
+	objList = append(objList, upperBarImdraw)
 
-	divider := imdraw.New(nil)
-	x := windowLength / 2
-
-	dividerPartLength := 30.0
-	padding := float64(int(windowWidth-barThickness*2) % int(dividerPartLength) / 2)
-
-	for i, y := 0, barThickness+padding; y < windowWidth-barThickness-padding; i, y = i+1, y+dividerPartLength {
-		if i%2 == 0 {
-			divider.Color = colornames.White
-		} else {
-			divider.Color = colornames.Black
-		}
-
-		divider.EndShape = imdraw.NoEndShape
-		divider.Push(pixel.V(x, y), pixel.V(x, y+dividerPartLength))
-	}
-	divider.Line(barThickness)
-	objList = append(objList, divider)
+	// Divider
+	dividerImdraw := getDivider().imdraw
+	objList = append(objList, dividerImdraw)
 
 	return objList
 }
@@ -79,11 +62,32 @@ func run() {
 	staticObjList := getStaticObjList()
 
 	// TODO: Create static textbox with dynamic score
+	atlas := text.NewAtlas(
+		basicfont.Face7x13,
+		text.ASCII,
+	)
+	textPadding := 100.0
+	textThickness := 30.0
+	scoreA := text.New(pixel.V(getHalfWindowLength()-textPadding, windowWidth-80), atlas)
+	scoreB := text.New(pixel.V(getHalfWindowLength()+textPadding-textThickness, windowWidth-80), atlas)
+
+	score := 0
+	fmt.Fprintf(scoreA, "%d", score)
+	fmt.Fprintf(scoreB, "%d", score)
+
+	// Moving bar
+	leftBar := GetLeftBar()
+	rightBar := GetRightBar()
 
 	for !window.Closed() {
 		for _, obj := range staticObjList {
 			obj.Draw(window)
 		}
+		leftBar.imdraw.Draw(window)
+		rightBar.imdraw.Draw(window)
+
+		scoreA.Draw(window, pixel.IM.Scaled(scoreA.Orig, 4))
+		scoreB.Draw(window, pixel.IM.Scaled(scoreB.Orig, 4))
 
 		window.Update()
 	}
